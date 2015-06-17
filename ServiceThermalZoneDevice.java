@@ -1,5 +1,5 @@
 //package echowand.sample;
-
+import echowand.info.PropertyConstraintOnOff;
 import echowand.common.EPC;
 import echowand.info.TemperatureSensorInfo;
 import echowand.logic.TooManyObjectsException;
@@ -33,6 +33,15 @@ public class ServiceThermalZoneDevice {
         public ThermalZoneDelegate(File file) {
             this.file = file;
         }
+	@Override
+	public void setData(LocalObjectDelegate.SetState result, LocalObject object, EPC epc, ObjectData newData, ObjectData curData){
+		if(epc == EPC.x80){
+			System.out.println(curData);	
+			System.out.println(newData);
+				
+			result.setSetData(newData,curData);
+		}
+	}
 
         @Override
         public void getData(LocalObjectDelegate.GetState result, LocalObject object, EPC epc) {
@@ -65,9 +74,14 @@ public class ServiceThermalZoneDevice {
     
     public static LocalObjectConfig createThermalZoneConfig() {
         TemperatureSensorInfo info = new TemperatureSensorInfo();
+
+	//add Date information	
 	//EPC, gettable, settable, observable, dataSize
         info.add(EPC.x97, true, false, false, 2);
         info.add(EPC.x98, true, false, false, 4);
+	//overwrite EPC 0x80
+	//EPC,gettable,settable,observable,initial data, constraint	
+	info.add(EPC.x80, true, true, true, new byte[]{0x30}, new PropertyConstraintOnOff());
 
 	LocalObjectConfig config = new LocalObjectConfig(info);
         config.addDelegate(new LocalObjectDateTimeDelegate());
