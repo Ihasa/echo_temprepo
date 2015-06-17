@@ -25,16 +25,13 @@ import java.util.logging.Logger;
  * @author ymakino
  */
 public class ServiceThermalZoneDevice {
-    public static final String SENSOR_FILENAME_TEMPLATE = "/home/pi/echo_temperature/temperature.txt";//"/sys/class/thermal/thermal_zone%d/temp";
-    //public static final String SENSOR_FILENAME_TEMPLATE = "/sys/class/thermal/thermal_zone0/temp";
+    public static final String SENSOR_FILENAME = "temperature.txt";
     public static class ThermalZoneDelegate extends LocalObjectDefaultDelegate {
 
         private File file;
-        private int scale;
 
-        public ThermalZoneDelegate(File file, int scale) {
+        public ThermalZoneDelegate(File file) {
             this.file = file;
-            this.scale = scale;
         }
 
         @Override
@@ -43,8 +40,8 @@ public class ServiceThermalZoneDevice {
                 try {
                     BufferedReader br = new BufferedReader(new FileReader(file));
                     String line = br.readLine();
-                    int value = (int) (Double.parseDouble(line) * 10 / scale);
-                    System.out.println(file  + ": " + line + "(" + (value/10.0) + ")");
+                    short value = Short.parseShort(line);
+                    System.out.println(file  + ": " + line + "(" + (value) + ")");
                    byte b1, b2; 
 		    if(value > 32766){
 			b1 = (byte) 0x7F;
@@ -66,32 +63,15 @@ public class ServiceThermalZoneDevice {
         }
     }
     
-    public static File getSensorFileAt(int index) {
-        return new File(SENSOR_FILENAME_TEMPLATE);
-        //return new File(String.format(SENSOR_FILENAME_TEMPLATE, index));
-    }
-    
-    public static int countSensors() {
-	int index;
-        
-        for (index = 0; index < 128; index++) {
-            File file = getSensorFileAt(index);
-            if (!file.exists()) {
-                break;
-            }
-        }
-        
-        return index;
-    }
-    
-    public static LocalObjectConfig createThermalZoneConfig(int index) {
+    public static LocalObjectConfig createThermalZoneConfig() {
         TemperatureSensorInfo info = new TemperatureSensorInfo();
+	//EPC, gettable, settable, observable, dataSize
         info.add(EPC.x97, true, false, false, 2);
         info.add(EPC.x98, true, false, false, 4);
-        
-        LocalObjectConfig config = new LocalObjectConfig(info);
+
+	LocalObjectConfig config = new LocalObjectConfig(info);
         config.addDelegate(new LocalObjectDateTimeDelegate());
-        config.addDelegate(new ThermalZoneDelegate(getSensorFileAt(index), 1));
+        config.addDelegate(new ThermalZoneDelegate(new File(SENSOR_FILENAME)));
 
         return config;
     }
@@ -111,10 +91,7 @@ public class ServiceThermalZoneDevice {
             core = new Core(Inet4Subnet.startSubnet(nif));
         }
         
-        int count = 1;//countSensors();
-        for (int index = 0; index < count; index++) {
-            core.addLocalObjectConfig(createThermalZoneConfig(index));
-        }
+        core.addLocalObjectConfig(createThermalZoneConfig());
         
         core.startService();
     }

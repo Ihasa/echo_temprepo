@@ -140,6 +140,7 @@ while True:
 		print ("xxxxxxxxxxxx____senssor_value____xxxxxxxxxxxxxxxxx")
 		print (""),date
 	temp = (trim_pot)*330/1024
+	temp = (int)(temp * 10)
 	
 	if MONITOR:
 		print (">>temp:{0}".format(temp))
