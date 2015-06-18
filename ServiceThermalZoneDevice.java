@@ -33,6 +33,17 @@ public class ServiceThermalZoneDevice {
         public ThermalZoneDelegate(File file) {
             this.file = file;
         }
+	
+	private String getLocaleCodes(ObjectData data){
+		byte b = data.toBytes()[0];
+		StringBuilder sb = new StringBuilder();
+		//Appendix.pdf p26
+		sb.append((b & 0x80)>>7).append("-"); //1000 0000
+		sb.append((b & 0x78)>>3).append("-"); //0111 1000
+		sb.append(b & 0x07);		 //0000 0111
+		return sb.toString();
+	}
+
 	@Override
 	public void notifyDataChanged(LocalObjectDelegate.NotifyState result, LocalObject object, EPC epc, ObjectData curData, ObjectData oldData){
 		System.out.println("notify:" + epc + "..." + oldData + " -> " + curData);	
@@ -41,6 +52,10 @@ public class ServiceThermalZoneDevice {
 			case x80:
 				oldStr = oldData.toString().equals("30") ? "ON" : "OFF";
 				curStr = curData.toString().equals("30") ? "ON" : "OFF";	
+				break;
+			case x81:
+				oldStr = getLocaleCodes(oldData); 
+				curStr = getLocaleCodes(curData); 
 				break;
 			case x88:
 				oldStr = oldData.toString().equals("41") ? "WARNING" : "NORMAL";
