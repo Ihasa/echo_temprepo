@@ -34,15 +34,22 @@ public class ServiceThermalZoneDevice {
             this.file = file;
         }
 	@Override
-	public void setData(LocalObjectDelegate.SetState result, LocalObject object, EPC epc, ObjectData newData, ObjectData curData){
-		if(epc == EPC.x80){
-			System.out.println(curData);	
-			System.out.println(newData);
-				
-			result.setSetData(newData,curData);
+	public void notifyDataChanged(LocalObjectDelegate.NotifyState result, LocalObject object, EPC epc, ObjectData curData, ObjectData oldData){
+		System.out.println("notify:" + epc + "..." + oldData + " -> " + curData);	
+		String oldStr="", curStr="";	
+		switch(epc){
+			case x80:
+				oldStr = oldData.toString().equals("30") ? "ON" : "OFF";
+				curStr = curData.toString().equals("30") ? "ON" : "OFF";	
+				break;
+			case x88:
+				oldStr = oldData.toString().equals("41") ? "WARNING" : "NORMAL";
+				curStr = curData.toString().equals("41") ? "WARNING" : "NORMAL";
+				break;
 		}
+		System.out.println("(" + oldStr + " -> " + curStr + ")");	
 	}
-
+	
         @Override
         public void getData(LocalObjectDelegate.GetState result, LocalObject object, EPC epc) {
             if (epc == EPC.xE0) {
