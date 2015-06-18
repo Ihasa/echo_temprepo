@@ -111,20 +111,16 @@ public class ServiceThermalZoneDevice {
 	//overwrite EPC 0x80
 	//EPC,gettable,settable,observable,initial data, constraint	
 	info.add(EPC.x80, true, true, true, new byte[]{0x30}, new PropertyConstraintOnOff());
-	//dummy property
-	info.add(EPC.xE3, true, true, true, new byte[]{0x55});
-
 	LocalObjectConfig config = new LocalObjectConfig(info);
         config.addDelegate(new LocalObjectDateTimeDelegate());
 	
        	config.addDelegate(new ThermalZoneDelegate(s,t,new File(SENSOR_FILENAME)));
-	//delegate for dummy property
+	//switch on off by 3s interval
         config.addPropertyUpdater(new PropertyUpdater(3000){
-		int n = 0;	
 		@Override
 		public void loop(LocalObject lo){
-			lo.setData(EPC.xE3, new ObjectData((byte)(n % 255)));
-			n++;
+			int b = lo.getData(EPC.x80).equals(new ObjectData((byte)0x30)) ? 0x31 : 0x30;
+			lo.setData(EPC.x80, new ObjectData((byte)b));
 		}
 	});
 	return config;
