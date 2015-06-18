@@ -3,12 +3,15 @@ import echowand.info.PropertyConstraintOnOff;
 import echowand.common.EPC;
 import echowand.info.TemperatureSensorInfo;
 import echowand.logic.TooManyObjectsException;
+import echowand.logic.TransactionManager;
 import echowand.net.Inet4Subnet;
+import echowand.net.Subnet;
 import echowand.net.SubnetException;
 import echowand.object.LocalObject;
 import echowand.object.LocalObjectDateTimeDelegate;
 import echowand.object.LocalObjectDefaultDelegate;
 import echowand.object.LocalObjectDelegate;
+import echowand.object.LocalObjectNotifyDelegate;
 import echowand.object.ObjectData;
 import echowand.service.Core;
 import echowand.service.LocalObjectConfig;
@@ -26,11 +29,12 @@ import java.util.logging.Logger;
  */
 public class ServiceThermalZoneDevice {
     public static final String SENSOR_FILENAME = "temperature.txt";
-    public static class ThermalZoneDelegate extends LocalObjectDefaultDelegate {
+    public static class ThermalZoneDelegate extends LocalObjectNotifyDelegate {
 
         private File file;
 
-        public ThermalZoneDelegate(File file) {
+        public ThermalZoneDelegate(Subnet s, TransactionManager m, File file) {
+	    super(s, m);
             this.file = file;
         }
 	
@@ -58,11 +62,12 @@ public class ServiceThermalZoneDevice {
 				curStr = getLocaleCodes(curData); 
 				break;
 			case x88:
-				oldStr = oldData.toString().equals("41") ? "WARNING" : "NORMAL";
+				oldStr = oldData.toString().equals("41") ? "FAILURE" : "NORMAL";
 				curStr = curData.toString().equals("41") ? "WARNING" : "NORMAL";
 				break;
 		}
 		System.out.println("(" + oldStr + " -> " + curStr + ")");	
+		super.notifyDataChanged(result, object,epc,curData,oldData);
 	}
 	
         @Override
@@ -94,7 +99,7 @@ public class ServiceThermalZoneDevice {
         }
     }
     
-    public static LocalObjectConfig createThermalZoneConfig() {
+    public static LocalObjectConfig createThermalZoneConfig(Subnet s, TransactionManager t) throws SubnetException{
         TemperatureSensorInfo info = new TemperatureSensorInfo();
 
 	//add Date information	
@@ -105,9 +110,11 @@ public class ServiceThermalZoneDevice {
 	//EPC,gettable,settable,observable,initial data, constraint	
 	info.add(EPC.x80, true, true, true, new byte[]{0x30}, new PropertyConstraintOnOff());
 
+
 	LocalObjectConfig config = new LocalObjectConfig(info);
         config.addDelegate(new LocalObjectDateTimeDelegate());
-        config.addDelegate(new ThermalZoneDelegate(new File(SENSOR_FILENAME)));
+	
+       	config.addDelegate(new ThermalZoneDelegate(s,t,new File(SENSOR_FILENAME)));
 
         return config;
     }
@@ -119,16 +126,15 @@ public class ServiceThermalZoneDevice {
         }
         
         Core core;
-        
+       Subnet s; 
         if (args.length == 0) {
-            core = new Core(Inet4Subnet.startSubnet());
+            s = Inet4Subnet.startSubnet();
         } else {
             NetworkInterface nif = NetworkInterface.getByName(args[0]);
-            core = new Core(Inet4Subnet.startSubnet(nif));
+	    s = Inet4Subnet.startSubnet(nif);
         }
-        
-        core.addLocalObjectConfig(createThermalZoneConfig());
-        
+        core = new Core(s);
+	core.addLocalObjectConfig(createThermalZoneConfig(s,new TransactionManager(s)));
         core.startService();
     }
 }
