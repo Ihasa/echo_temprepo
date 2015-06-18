@@ -115,14 +115,6 @@ public class ServiceThermalZoneDevice {
         config.addDelegate(new LocalObjectDateTimeDelegate());
 	
        	config.addDelegate(new ThermalZoneDelegate(s,t,new File(SENSOR_FILENAME)));
-	//switch on off by 3s interval
-        config.addPropertyUpdater(new PropertyUpdater(3000){
-		@Override
-		public void loop(LocalObject lo){
-			int b = lo.getData(EPC.x80).equals(new ObjectData((byte)0x30)) ? 0x31 : 0x30;
-			lo.setData(EPC.x80, new ObjectData((byte)b));
-		}
-	});
 	return config;
     }
     
