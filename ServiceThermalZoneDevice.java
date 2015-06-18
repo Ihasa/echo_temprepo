@@ -1,5 +1,6 @@
 //package echowand.sample;
 import echowand.info.PropertyConstraintOnOff;
+import echowand.object.LocalObjectRandomDelegate;
 import echowand.common.EPC;
 import echowand.info.TemperatureSensorInfo;
 import echowand.logic.TooManyObjectsException;
@@ -15,6 +16,7 @@ import echowand.object.LocalObjectNotifyDelegate;
 import echowand.object.ObjectData;
 import echowand.service.Core;
 import echowand.service.LocalObjectConfig;
+import echowand.service.PropertyUpdater;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -50,6 +52,7 @@ public class ServiceThermalZoneDevice {
 
 	@Override
 	public void notifyDataChanged(LocalObjectDelegate.NotifyState result, LocalObject object, EPC epc, ObjectData curData, ObjectData oldData){
+		super.notifyDataChanged(result, object,epc,curData,oldData);
 		System.out.println("notify:" + epc + "..." + oldData + " -> " + curData);	
 		String oldStr="", curStr="";	
 		switch(epc){
@@ -67,7 +70,6 @@ public class ServiceThermalZoneDevice {
 				break;
 		}
 		System.out.println("(" + oldStr + " -> " + curStr + ")");	
-		super.notifyDataChanged(result, object,epc,curData,oldData);
 	}
 	
         @Override
@@ -109,14 +111,23 @@ public class ServiceThermalZoneDevice {
 	//overwrite EPC 0x80
 	//EPC,gettable,settable,observable,initial data, constraint	
 	info.add(EPC.x80, true, true, true, new byte[]{0x30}, new PropertyConstraintOnOff());
-
+	//dummy property
+	info.add(EPC.xE3, true, true, true, new byte[]{0x55});
 
 	LocalObjectConfig config = new LocalObjectConfig(info);
         config.addDelegate(new LocalObjectDateTimeDelegate());
 	
        	config.addDelegate(new ThermalZoneDelegate(s,t,new File(SENSOR_FILENAME)));
-
-        return config;
+	//delegate for dummy property
+        config.addPropertyUpdater(new PropertyUpdater(3000){
+		int n = 0;	
+		@Override
+		public void loop(LocalObject lo){
+			lo.setData(EPC.xE3, new ObjectData((byte)(n % 255)));
+			n++;
+		}
+	});
+	return config;
     }
     
     public static void main(String[] args) throws InterruptedException, SocketException, SubnetException, TooManyObjectsException {
