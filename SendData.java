@@ -3,6 +3,7 @@ import echowand.net.*;
 import echowand.logic.*;
 import echowand.service.*;
 import echowand.common.*;
+import echowand.info.NodeProfileInfo;
 
 public class SendData{
 	//objのEOJとすべてのプロパティを出力
@@ -18,15 +19,30 @@ public class SendData{
 	}
 
 	//サブネット内にあるすべてのオブジェクトのすべてのプロパティを出力
-	static void printAllEojState(Subnet subnet) throws EchonetObjectException, InterruptedException, SubnetException{
+	static void printAllEojState(Subnet subnet) throws EchonetObjectException, InterruptedException, SubnetException, TooManyObjectsException{
 		RemoteObjectManager remoteManager = new RemoteObjectManager();
-		
+		LocalObjectManager localManager = new LocalObjectManager();
+		TransactionManager transactionManager = new TransactionManager(subnet);
 		InstanceListRequestExecutor executor = new InstanceListRequestExecutor(
 			subnet,
-			new TransactionManager(subnet),
+			transactionManager,
 			remoteManager
 		);
-		
+        
+        //プロファイルオブジェクトを作成
+        LocalObject nodeProfileObject = new LocalObject(new NodeProfileInfo());
+        nodeProfileObject.addDelegate(new NodeProfileObjectDelegate(localManager));
+        nodeProfileObject.addDelegate(new LocalObjectNotifyDelegate(subnet, transactionManager));
+        //ローカル（デバイス上）で動くオブジェクトとして追加
+        localManager.add(nodeProfileObject);
+        
+        //echonetオブジェクトとしての動作を開始
+        MainLoop mainLoop = new MainLoop();
+        mainLoop.setSubnet(subnet);
+        mainLoop.addListener(transactionManager);
+        Thread mainThread = new Thread(mainLoop);
+        mainThread.start();
+        
 		//情報取得実行
 		executor.execute();
 		System.out.println("executed");
